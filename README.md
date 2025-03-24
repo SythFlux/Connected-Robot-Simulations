@@ -1,6 +1,6 @@
 # Connected-Robot-Simulations
 
-Namen: Donny Vo, Long Vo, When Hao, Alexander Ikpa
+Namen: Donny Vo, Long Vo, Wen Hao You, Alexander Ikpa
 Datum: project 24/03/2025
 
 # Project Description
