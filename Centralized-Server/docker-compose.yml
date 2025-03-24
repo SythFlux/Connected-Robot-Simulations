@@ -6,14 +6,19 @@ services:
     container_name: dashboard
     volumes:
       - ./LiveServices/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./LiveServices/certs:/etc/nginx/certs
+      - ./public:/usr/share/nginx/html
     ports:
       - "80:80"
-
+      - "443:443"  # HTTPS for the web chat
+    restart: always
   mosquitto:
-    image: eclipse-mosquitto
+    image: eclipse-mosquitto:latest
     container_name: mosquitto
+    restart: unless-stopped
     ports:
       - "1883:1883"
-      - "1884:1884"
+      - "1884:1884" #Websockets
     volumes:
       - ./LiveServices/mqtt:/mosquitto/config 
+
