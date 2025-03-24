@@ -1,4 +1,4 @@
-version: '3.8'  # or whichever version you are using
+
 
 services:
   nginx:
@@ -16,4 +16,4 @@ services:
       - "1883:1883"
       - "9001:9001"
     volumes:
-      - ./LiveServices/mqtt:/mosquitto/config 
+      - ./LiveServices/mosquitto:/mosquitto/config 
