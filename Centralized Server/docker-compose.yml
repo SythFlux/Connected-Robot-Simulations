@@ -1,0 +1,19 @@
+version: '3.8'  # or whichever version you are using
+
+services:
+  nginx:
+    image: nginx
+    container_name: dashboard
+    volumes:
+      - ./LiveServices/nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "1884:1884"
+    volumes:
+      - ./LiveServices/mqtt:/mosquitto/config 

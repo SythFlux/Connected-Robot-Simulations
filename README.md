@@ -1,6 +1,6 @@
 # Connected-Robot-Simulations
 
-Namen: Donny Vo, Long Vo, When Hao, Alexander Ikpa
+Namen: Donny Vo, Long Vo, Wen Hao You, Alexander Ikpa
 Datum: project 24/03/2025
 
 # Project Description
@@ -14,3 +14,18 @@ to a centralized server, the user can choose specifik units and move them to a s
 The protocols that get sent also go through the ESP32 microcontroller that displays with LED lights what direction the
 robot is currently moving.
 
+# Central Server
+
+The Centralized Server runs on docker containers, so everything
+can be run with a simple ```docker compose up```, The system will implement
+Mosquitto as communicationmethod.
+
+# Dashboard
+
+A dashboard is created to visualize the the simulation on a website, with the use of HTML5 we can 
+create the same playing field as the one in WeBots and display the robots as the move on the grid. 
+
+Furthermore the dashboard needs to contain a user-interface where the user can choose commands for 
+
+The dashboard
+contains general information where all the units reside and
