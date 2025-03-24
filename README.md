@@ -14,6 +14,10 @@ to a centralized server, the user can choose specifik units and move them to a s
 The protocols that get sent also go through the ESP32 microcontroller that displays with LED lights what direction the
 robot is currently moving.
 
+
+# System Architecture
+
+
 # Central Server
 
 The Centralized Server runs on docker containers, so everything
