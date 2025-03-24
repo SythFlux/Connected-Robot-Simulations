@@ -6,14 +6,16 @@ services:
     container_name: dashboard
     volumes:
       - ./LiveServices/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./public:/usr/share/nginx/html
+      - ./LiveServices/certs:/etc/nginx/certs
     ports:
       - "80:80"
-
+      - "443:443" #HTTPS
   mosquitto:
     image: eclipse-mosquitto
     container_name: mosquitto
     ports:
       - "1883:1883"
-      - "9001:9001"
+      - "9001:9001" #Websockets
     volumes:
       - ./LiveServices/mosquitto:/mosquitto/config 
