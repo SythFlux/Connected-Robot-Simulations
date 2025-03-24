@@ -1,19 +1,24 @@
-
-
+version: '3.9'
 services:
   nginx:
     image: nginx
     container_name: dashboard
     volumes:
       - ./LiveServices/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./Frontend:/usr/share/nginx/html
+      - ./LiveServices/certs:/etc/nginx/certs
     ports:
       - "80:80"
+      - "443:443" #HTTPS
+    restart: always
 
   mosquitto:
     image: eclipse-mosquitto
     container_name: mosquitto
     ports:
       - "1883:1883"
-      - "9001:9001"
+      - "9001:9001" #Websockets
     volumes:
-      - ./LiveServices/mosquitto:/mosquitto/config 
+      - ./LiveServices/mqtt/mqtt.conf:/mosquitto/config/mosquitto.conf
+      - ./LiveServices/mqtt/mosquitto_passwd:/mosquitto/config/mosquitto_passwd
+    restart: unless-stopped
