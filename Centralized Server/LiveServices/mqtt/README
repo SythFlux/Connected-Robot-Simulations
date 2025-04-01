@@ -1,0 +1,7 @@
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!! nginx.conf NIET AANPASSEN PLEASE! als er een probleem mee is. App me !!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Login voor mosquitto:
+    Gebruikersnaam: user
+    Wachtwoord: user123
+Je kan in de mosquitto_passwd file een user toevoegen met wachtwoord of verwijderen vergeet niet in de docker mqtt terminal de "mosquitto_passwd -U mosquitto/config/mosquitto_passwd" cmd te zetten erna!

@@ -1,24 +1,24 @@
-version: '3.8'  # or whichever version you are using
-
+version: '3.9'
 services:
   nginx:
     image: nginx
     container_name: dashboard
     volumes:
       - ./LiveServices/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./Frontend:/usr/share/nginx/html
       - ./LiveServices/certs:/etc/nginx/certs
-      - ./public:/usr/share/nginx/html
     ports:
       - "80:80"
-      - "443:443"  # HTTPS for the web chat
+      - "443:443" #HTTPS
     restart: always
+
   mosquitto:
-    image: eclipse-mosquitto:latest
+    image: eclipse-mosquitto
     container_name: mosquitto
-    restart: unless-stopped
     ports:
       - "1883:1883"
-      - "1884:1884" #Websockets
+      - "9001:9001" #Websockets
     volumes:
-      - ./LiveServices/mqtt:/mosquitto/config 
-
+      - ./LiveServices/mqtt/mqtt.conf:/mosquitto/config/mosquitto.conf
+      - ./LiveServices/mqtt/mosquitto_passwd:/mosquitto/config/mosquitto_passwd
+    restart: unless-stopped
