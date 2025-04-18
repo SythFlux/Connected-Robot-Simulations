@@ -153,4 +153,17 @@ body {
 canvas#map-canvas {
   margin-top: 20px;
 }
+#map-container {
+  display: flex;
+  justify-content: center;  /* Centers horizontally */
+  align-items: center;      /* Centers vertically */
+  width: 100%;              /* Take full width of the container */
+  height: 800px;            /* Set the height of the container */
+  margin: 20px auto;        /* Add some space around the container */
+}
 
+#robot-canvas {
+  border: 1px solid #000;  /* Optional: add border for visual clarity */
+  max-width: 100%;          /* Ensure the canvas doesn't overflow its container */
+  max-height: 100%;         /* Ensure the canvas doesn't overflow its container */
+}

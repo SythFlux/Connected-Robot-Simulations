@@ -1,65 +1,70 @@
-document.addEventListener('DOMContentLoaded', function() {
-  // Protocol version
-  const PROTOCOL_VERSION = "1.0";
-  
-  // Robot states
-  const robots = {
-      'robot_1': createRobotState('Robot 1'),
-      'robot_2': createRobotState('Robot 2'), 
-      'robot_3': createRobotState('Robot 3'),
-      'robot_4': createRobotState('Robot 4')
-  };
-  
-  // UI Elements
-  const dashboard = document.querySelector('.dashboard');
-  const robotContainer = document.getElementById('robot-container');
-  const messageLog = document.createElement('div');
-  messageLog.className = 'log';
-  messageLog.innerHTML = '<h3>Message Log</h3><div id="message-log-content"></div>';
-  dashboard.appendChild(messageLog);
-  
-  const taskContainer = document.createElement('div');
-  taskContainer.className = 'task-container';
-  taskContainer.innerHTML = '<h3>Task Assignments</h3><div id="task-list"></div>';
-  dashboard.appendChild(taskContainer);
-  
-  const obstacleContainer = document.createElement('div');
-  obstacleContainer.className = 'obstacle-container';
-  obstacleContainer.innerHTML = '<h3>Detected Obstacles</h3><div id="obstacle-list"></div>';
-  dashboard.appendChild(obstacleContainer);
+const obstacles = []; // Array to store obstacle information
+document.addEventListener('DOMContentLoaded', function () {
+    // Protocol version
+    const PROTOCOL_VERSION = "1.0";
 
-  // Connection status UI
-  const mqttStatus = document.getElementById('mqtt-status');
-  const mqttStatusIndicator = document.getElementById('mqtt-status-indicator');
+    // Function to add an obstacle to the array
+    function addObstacle(obstacle) {
+        obstacles.push(obstacle);
+    }
+    // Robot states
+    const robots = {
+        'robot_1': createRobotState('Robot 1'),
+        'robot_2': createRobotState('Robot 2'),
+        'robot_3': createRobotState('Robot 3'),
+        'robot_4': createRobotState('Robot 4')
+    };
 
-  function createRobotState(name) {
-      return {
-          name: name,
-          online: false,
-          x: 0,
-          y: 0,
-          direction: 'null',
-          lastUpdate: null,
-          element: null,
-          currentTask: null
-      };
-  }
-  
-  function updateRobotUI(robotId) {
-      const robot = robots[robotId];
-      if (!robot) {
-          console.error(`Robot ${robotId} not found`);
-          return;
-      }
+    // UI Elements
+    const dashboard = document.querySelector('.dashboard');
+    const robotContainer = document.getElementById('robot-container');
+    const messageLog = document.createElement('div');
+    messageLog.className = 'log';
+    messageLog.innerHTML = '<h3>Message Log</h3><div id="message-log-content"></div>';
+    dashboard.appendChild(messageLog);
 
-      if (!robot.element) {
-          robot.element = document.createElement('div');
-          robot.element.className = 'robot-card';
-          robot.element.id = `robot-${robotId}`;
-          robotContainer.appendChild(robot.element);
-      }
+    const taskContainer = document.createElement('div');
+    taskContainer.className = 'task-container';
+    taskContainer.innerHTML = '<h3>Task Assignments</h3><div id="task-list"></div>';
+    dashboard.appendChild(taskContainer);
 
-      robot.element.innerHTML = `
+    const obstacleContainer = document.createElement('div');
+    obstacleContainer.className = 'obstacle-container';
+    obstacleContainer.innerHTML = '<h3>Detected Obstacles</h3><div id="obstacle-list"></div>';
+    dashboard.appendChild(obstacleContainer);
+
+    // Connection status UI
+    const mqttStatus = document.getElementById('mqtt-status');
+    const mqttStatusIndicator = document.getElementById('mqtt-status-indicator');
+
+    function createRobotState(name) {
+        return {
+            name: name,
+            online: false,
+            x: 0,
+            y: 0,
+            direction: 'null',
+            lastUpdate: null,
+            element: null,
+            currentTask: null
+        };
+    }
+
+    function updateRobotUI(robotId) {
+        const robot = robots[robotId];
+        if (!robot) {
+            console.error(`Robot ${robotId} not found`);
+            return;
+        }
+
+        if (!robot.element) {
+            robot.element = document.createElement('div');
+            robot.element.className = 'robot-card';
+            robot.element.id = `robot-${robotId}`;
+            robotContainer.appendChild(robot.element);
+        }
+
+        robot.element.innerHTML = `
           <h2>${robot.name}</h2>
           <div class="status-line">
               <span class="status-label">Status:</span>
@@ -81,380 +86,521 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="last-update">Last update: ${robot.lastUpdate || 'Never'}</div>
       `;
 
-      robot.element.classList.toggle('online', robot.online);
-      robot.element.classList.toggle('offline', !robot.online);
-      
-      updateConnectedRobotsCount();
-  }
-  
-  function getDirectionArrow(dir) {
-      const arrows = {
-          north: '↑', 
-          east: '→',
-          south: '↓',
-          west: '←',
-      };
-      return arrows[dir.toLowerCase()] || dir;
-  }
-  
-  function addLog(message) {
-      const log = document.getElementById('message-log-content');
-      const entry = document.createElement('div');
-      entry.className = 'log-entry';
-      
-      // Handle multi-line messages
-      const lines = message.split('\n');
-      lines.forEach((line, index) => {
-          const lineElement = document.createElement('div');
-          if (index === 0) {
-              lineElement.textContent = `${new Date().toLocaleTimeString()}: ${line}`;
-          } else {
-              lineElement.textContent = `    ${line}`;
-              lineElement.style.marginLeft = '20px';
-          }
-          entry.appendChild(lineElement);
-      });
-      
-      log.insertBefore(entry, log.firstChild);
-      if (log.children.length > 100) {
-          log.removeChild(log.lastChild);
-      }
-  }
-  
-  function addTask(task) {
-      const taskList = document.getElementById('task-list');
-      const taskElement = document.createElement('div');
-      taskElement.className = 'task-item';
-      taskElement.innerHTML = `
+        robot.element.classList.toggle('online', robot.online);
+        robot.element.classList.toggle('offline', !robot.online);
+
+        updateConnectedRobotsCount();
+    }
+
+    function getDirectionArrow(dir) {
+        const arrows = {
+            north: '↑',
+            east: '→',
+            south: '↓',
+            west: '←',
+        };
+        return arrows[dir.toLowerCase()] || dir;
+    }
+
+    function addLog(message) {
+        const log = document.getElementById('message-log-content');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+
+        // Handle multi-line messages
+        const lines = message.split('\n');
+        lines.forEach((line, index) => {
+            const lineElement = document.createElement('div');
+            if (index === 0) {
+                lineElement.textContent = `${new Date().toLocaleTimeString()}: ${line}`;
+            } else {
+                lineElement.textContent = `    ${line}`;
+                lineElement.style.marginLeft = '20px';
+            }
+            entry.appendChild(lineElement);
+        });
+
+        log.insertBefore(entry, log.firstChild);
+        if (log.children.length > 100) {
+            log.removeChild(log.lastChild);
+        }
+    }
+
+    function addTask(task) {
+        const taskList = document.getElementById('task-list');
+        const taskElement = document.createElement('div');
+        taskElement.className = 'task-item';
+        taskElement.innerHTML = `
           <strong>${task.robot_id}</strong>: ${task.task} at (${task.target_x}, ${task.target_y})
           <span class="task-time">${new Date(task.timestamp * 1000).toLocaleTimeString()}</span>
       `;
-      taskList.insertBefore(taskElement, taskList.firstChild);
-      if (taskList.children.length > 20) {
-          taskList.removeChild(taskList.lastChild);
-      }
-  }
-  
-  function addObstacle(obstacle) {
-      const obstacleList = document.getElementById('obstacle-list');
-      const obstacleElement = document.createElement('div');
-      obstacleElement.className = 'obstacle-item';
-      obstacleElement.innerHTML = `
+        taskList.insertBefore(taskElement, taskList.firstChild);
+        if (taskList.children.length > 20) {
+            taskList.removeChild(taskList.lastChild);
+        }
+    }
+
+    function addObstacle(obstacle) {
+        const obstacleList = document.getElementById('obstacle-list');
+        const obstacleElement = document.createElement('div');
+        obstacleElement.className = 'obstacle-item';
+        obstacleElement.innerHTML = `
           <strong>${obstacle.sender}</strong>: ${obstacle.obstacle_type} at (${obstacle.x}, ${obstacle.y})
           <span class="obstacle-time">${new Date(obstacle.timestamp * 1000).toLocaleTimeString()}</span>
       `;
-      obstacleList.insertBefore(obstacleElement, obstacleList.firstChild);
-      if (obstacleList.children.length > 20) {
-          obstacleList.removeChild(obstacleList.lastChild);
-      }
-  }
-  function addAcknowledgment(ack) {
-    const ackList = document.getElementById('ack-list');
-    const ackElement = document.createElement('div');
-    ackElement.className = 'ack-item';
-    ackElement.innerHTML = `
+        obstacleList.insertBefore(obstacleElement, obstacleList.firstChild);
+        if (obstacleList.children.length > 20) {
+            obstacleList.removeChild(obstacleList.lastChild);
+        }
+    }
+    function addAcknowledgment(ack) {
+        const ackList = document.getElementById('ack-list');
+        const ackElement = document.createElement('div');
+        ackElement.className = 'ack-item';
+        ackElement.innerHTML = `
       <strong>${ack.sender}</strong>: Acknowledged message ID <code>${ack.messageId}</code>
       <span class="ack-time">${new Date(ack.timestamp * 1000).toLocaleTimeString()}</span>
     `;
-    ackList.insertBefore(ackElement, ackList.firstChild);
-    if (ackList.children.length > 20) {
-      ackList.removeChild(ackList.lastChild);
+        ackList.insertBefore(ackElement, ackList.firstChild);
+        if (ackList.children.length > 20) {
+            ackList.removeChild(ackList.lastChild);
+        }
     }
-  }
-  
-  function addError(error) {
-    const errorList = document.getElementById('error-list');
-    const errorElement = document.createElement('div');
-    errorElement.className = 'error-item';
-    errorElement.innerHTML = `
+
+    function addError(error) {
+        const errorList = document.getElementById('error-list');
+        const errorElement = document.createElement('div');
+        errorElement.className = 'error-item';
+        errorElement.innerHTML = `
       <strong>${error.sender}</strong>: ${error.message}
       <span class="error-code">Code: ${error.code}</span>
       <span class="error-time">${new Date(error.timestamp * 1000).toLocaleTimeString()}</span>
     `;
-    errorList.insertBefore(errorElement, errorList.firstChild);
-    if (errorList.children.length > 20) {
-      errorList.removeChild(errorList.lastChild);
+        errorList.insertBefore(errorElement, errorList.firstChild);
+        if (errorList.children.length > 20) {
+            errorList.removeChild(errorList.lastChild);
+        }
     }
-  }
-  
 
-  function updateConnectedRobotsCount() {
-      const connected = Object.values(robots).filter(r => r.online).length;
-      document.getElementById('connected-robots').textContent = connected;
-  }
 
-  function updateConnectionStatus(connected) {
-      mqttStatus.textContent = connected ? 'Connected to MQTT' : 'Disconnected from MQTT';
-      mqttStatusIndicator.className = connected ? 'status-indicator connected' : 'status-indicator disconnected';
-  }
+    function updateConnectedRobotsCount() {
+        const connected = Object.values(robots).filter(r => r.online).length;
+        document.getElementById('connected-robots').textContent = connected;
+    }
 
-  // Initialize all robot UIs
-  Object.keys(robots).forEach(robotId => {
-      updateRobotUI(robotId);
-  });
+    function updateConnectionStatus(connected) {
+        mqttStatus.textContent = connected ? 'Connected to MQTT' : 'Disconnected from MQTT';
+        mqttStatusIndicator.className = connected ? 'status-indicator connected' : 'status-indicator disconnected';
+    }
 
-  // Init MQTT
-  const client = new Paho.Client(
-      window.location.hostname,
-      Number(443),
-      '/mqtt',
-      `dashboard-${Math.random().toString(16).substr(2, 8)}`
-  );
-  
-  client.connect({
-      userName: 'user',
-      password: 'user123',
-      useSSL: true,
-      mqttVersion: 4,
-      onSuccess: () => {
-          updateConnectionStatus(true);
-          addLog('Connected to MQTT broker');
-          
-          // Subscribe to topics
-          client.subscribe('robots/position_updates');
-          client.subscribe('robots/obstacles');
-          client.subscribe('server/tasks');
-          client.subscribe('robots/acknowledgments');
-          client.subscribe('robots/errors');
-          
-          console.log('Subscribed to all topics');
-      },
-      onFailure: (err) => {
-          updateConnectionStatus(false);
-          addLog(`Connection failed: ${err.errorMessage}`);
-          console.error('Connection failed:', err);
-      }
-  });
-  
-  client.onMessageArrived = (message) => {
-      const topic = message.destinationName;
-      const payload = message.payloadString;
-      
-      try {
-          const msg = JSON.parse(payload);
-          console.log('Received message:', msg);
-          
-          // Validate basic message structure
-          if (!msg.sender || !msg.type || !msg.timestamp) {
-              throw new Error('Invalid message structure - missing required fields');
-          }
-          
-          // Check protocol version
-          if (msg.version && msg.version !== PROTOCOL_VERSION) {
-              addLog(`Version mismatch from ${msg.sender}: Expected ${PROTOCOL_VERSION}, got ${msg.version}`);
-              return;
-          }
-          
-          // Handle different message types
-          switch(msg.type.toLowerCase()) {
-              case 'position_update':
-                  if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.direction) {
-                      throw new Error('Invalid position_update structure');
-                  }
-                  
-                  if (robots[msg.sender]) {
-                      robots[msg.sender].online = true;
-                      robots[msg.sender].x = msg.data.x;
-                      robots[msg.sender].y = msg.data.y;
-                      robots[msg.sender].direction = msg.data.direction;
-                      robots[msg.sender].lastUpdate = new Date(msg.timestamp * 1000).toLocaleTimeString();
-                      updateRobotUI(msg.sender);
-                      addLog(`${msg.sender} position: (${msg.data.x}, ${msg.data.y}) facing ${msg.data.direction}`);
-                  } else {
-                      addLog(`Received update for unknown robot: ${msg.sender}`);
-                  }
-                  break;
-                  
-              case 'obstacle_detected':
-                  if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.obstacle_type) {
-                      throw new Error('Invalid obstacle_detected structure');
-                  }
-                  
-                  addObstacle({
-                      sender: msg.sender,
-                      x: msg.data.x,
-                      y: msg.data.y,
-                      obstacle_type: msg.data.obstacle_type,
-                      timestamp: msg.timestamp
-                  });
-                  addLog(`${msg.sender} detected ${msg.data.obstacle_type} at (${msg.data.x}, ${msg.data.y})`);
-                  break;
-                  
-              case 'task_assignment':
-                  if (!msg.data || !msg.data.robot_id || !msg.data.task || 
-                      msg.data.target_x === undefined || msg.data.target_y === undefined) {
-                      throw new Error('Invalid task_assignment structure');
-                  }
-                  
-                  if (robots[msg.data.robot_id]) {
-                      robots[msg.data.robot_id].currentTask = msg.data.task;
-                      updateRobotUI(msg.data.robot_id);
-                  }
-                  addTask({
-                      robot_id: msg.data.robot_id,
-                      task: msg.data.task,
-                      target_x: msg.data.target_x,
-                      target_y: msg.data.target_y,
-                      timestamp: msg.timestamp
-                  });
-                  addLog(`Task assigned: ${msg.data.robot_id} to ${msg.data.task} at (${msg.data.target_x}, ${msg.data.target_y})`);
-                  break;
-                  
-              case 'acknowledgment':
-                  if (!msg.data || !msg.data.received_message_id) {
-                      throw new Error('Invalid acknowledgment structure');
-                  }
-                  addAcknowledgment({
-                    sender: msg.sender,
-                    messageId: msg.data.received_message_id,
-                    timestamp: msg.timestamp
-                  });
-                  addLog(`${msg.sender} acknowledged: ${msg.data.received_message_id}`);
-                  break;
-                  
-              case 'error':
-                  if (!msg.data || !msg.data.error_code || !msg.data.error_message) {
-                      throw new Error('Invalid error structure');
-                  }
-                  addError({
-                    sender: msg.sender,
-                    message: msg.data.error_message,
-                    code: msg.data.error_code,
-                    timestamp: msg.timestamp
-                  });
-                  addLog(`ERROR from ${msg.sender}: ${msg.data.error_message} (code ${msg.data.error_code})`);
-                  break;
-                  
-              default:
-                  addLog(`Unknown message type from ${msg.sender}: ${msg.type}`);
-          }
-      } catch (e) {
-          addLog(`Error processing message: ${e.message}`);
-          console.error('Error processing message:', e, 'Raw message:', message);
-      }
-  };
-  
-  client.onConnectionLost = (response) => {
-      updateConnectionStatus(false);
-      if (response.errorCode !== 0) {
-          addLog(`Connection lost: ${response.errorMessage}`);
-          console.error('Connection lost:', response);
-      }
-  };
-  
-  // Periodically mark robots as offline if no updates received
-  setInterval(() => { 
-      const now = Date.now();
-      Object.keys(robots).forEach(robotId => {
-          const robot = robots[robotId];
-          if (robot.lastUpdate && (now - new Date(robot.lastUpdate).getTime() > 30000)) {
-              robot.online = false;
-              updateRobotUI(robotId);
-          }
-      });
-  }, 10000);
+    // Initialize all robot UIs
+    Object.keys(robots).forEach(robotId => {
+        updateRobotUI(robotId);
+    });
 
-  // Add test buttons for development
-  const testButtons = document.createElement('div');
-  testButtons.className = 'test-buttons';
-  testButtons.innerHTML = `
+    // Init MQTT
+    const client = new Paho.Client(
+        window.location.hostname,
+        Number(443),
+        '/mqtt',
+        `dashboard-${Math.random().toString(16).substr(2, 8)}`
+    );
+
+    client.connect({
+        userName: 'user',
+        password: 'user123',
+        useSSL: true,
+        mqttVersion: 4,
+        onSuccess: () => {
+            updateConnectionStatus(true);
+            addLog('Connected to MQTT broker');
+
+            // Subscribe to topics
+            client.subscribe('robots/position_updates');
+            client.subscribe('robots/obstacles');
+            client.subscribe('server/tasks');
+            client.subscribe('robots/acknowledgments');
+            client.subscribe('robots/errors');
+
+            console.log('Subscribed to all topics');
+        },
+        onFailure: (err) => {
+            updateConnectionStatus(false);
+            addLog(`Connection failed: ${err.errorMessage}`);
+            console.error('Connection failed:', err);
+        }
+    });
+
+    client.onMessageArrived = (message) => {
+        const topic = message.destinationName;
+        const payload = message.payloadString;
+
+        try {
+            const msg = JSON.parse(payload);
+            console.log('Received message:', msg);
+
+            // Validate basic message structure
+            if (!msg.sender || !msg.type || !msg.timestamp) {
+                throw new Error('Invalid message structure - missing required fields');
+            }
+
+            // Check protocol version
+            if (msg.version && msg.version !== PROTOCOL_VERSION) {
+                addLog(`Version mismatch from ${msg.sender}: Expected ${PROTOCOL_VERSION}, got ${msg.version}`);
+                return;
+            }
+
+            // Handle different message types
+            switch (msg.type.toLowerCase()) {
+                case 'position_update':
+                    if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.direction) {
+                        throw new Error('Invalid position_update structure');
+                    }
+
+                    if (robots[msg.sender]) {
+                        robots[msg.sender].online = true;
+                        robots[msg.sender].x = msg.data.x;
+                        robots[msg.sender].y = msg.data.y;
+                        robots[msg.sender].direction = msg.data.direction;
+                        robots[msg.sender].lastUpdate = new Date(msg.timestamp * 1000).toLocaleTimeString();
+                        updateRobotUI(msg.sender);
+                        addLog(`${msg.sender} position: (${msg.data.x}, ${msg.data.y}) facing ${msg.data.direction}`);
+                    } else {
+                        addLog(`Received update for unknown robot: ${msg.sender}`);
+                    }
+                    break;
+
+                case 'obstacle_detected':
+                    if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.obstacle_type) {
+                        throw new Error('Invalid obstacle_detected structure');
+                    }
+
+                    addObstacle({
+                        sender: msg.sender,
+                        x: msg.data.x,
+                        y: msg.data.y,
+                        obstacle_type: msg.data.obstacle_type,
+                        timestamp: msg.timestamp
+                    });
+
+                    addLog(`${msg.sender} detected ${msg.data.obstacle_type} at (${msg.data.x}, ${msg.data.y})`);
+                    break;
+
+
+                case 'task_assignment':
+                    if (!msg.data || !msg.data.robot_id || !msg.data.task ||
+                        msg.data.target_x === undefined || msg.data.target_y === undefined) {
+                        throw new Error('Invalid task_assignment structure');
+                    }
+
+                    if (robots[msg.data.robot_id]) {
+                        robots[msg.data.robot_id].currentTask = msg.data.task;
+                        updateRobotUI(msg.data.robot_id);
+                    }
+                    addTask({
+                        robot_id: msg.data.robot_id,
+                        task: msg.data.task,
+                        target_x: msg.data.target_x,
+                        target_y: msg.data.target_y,
+                        timestamp: msg.timestamp
+                    });
+                    addLog(`Task assigned: ${msg.data.robot_id} to ${msg.data.task} at (${msg.data.target_x}, ${msg.data.target_y})`);
+                    break;
+
+                case 'acknowledgment':
+                    if (!msg.data || !msg.data.received_message_id) {
+                        throw new Error('Invalid acknowledgment structure');
+                    }
+                    addAcknowledgment({
+                        sender: msg.sender,
+                        messageId: msg.data.received_message_id,
+                        timestamp: msg.timestamp
+                    });
+                    addLog(`${msg.sender} acknowledged: ${msg.data.received_message_id}`);
+                    break;
+
+                case 'error':
+                    if (!msg.data || !msg.data.error_code || !msg.data.error_message) {
+                        throw new Error('Invalid error structure');
+                    }
+                    addError({
+                        sender: msg.sender,
+                        message: msg.data.error_message,
+                        code: msg.data.error_code,
+                        timestamp: msg.timestamp
+                    });
+                    addLog(`ERROR from ${msg.sender}: ${msg.data.error_message} (code ${msg.data.error_code})`);
+                    break;
+
+                default:
+                    addLog(`Unknown message type from ${msg.sender}: ${msg.type}`);
+            }
+        } catch (e) {
+            addLog(`Error processing message: ${e.message}`);
+            console.error('Error processing message:', e, 'Raw message:', message);
+        }
+    };
+
+    client.onConnectionLost = (response) => {
+        updateConnectionStatus(false);
+        if (response.errorCode !== 0) {
+            addLog(`Connection lost: ${response.errorMessage}`);
+            console.error('Connection lost:', response);
+        }
+    };
+
+    // Periodically mark robots as offline if no updates received
+    setInterval(() => {
+        const now = Date.now();
+        Object.keys(robots).forEach(robotId => {
+            const robot = robots[robotId];
+            if (robot.lastUpdate && (now - new Date(robot.lastUpdate).getTime() > 30000)) {
+                robot.online = false;
+                updateRobotUI(robotId);
+            }
+        });
+    }, 10000);
+
+    // Add test buttons for development
+    const testButtons = document.createElement('div');
+    testButtons.className = 'test-buttons';
+    testButtons.innerHTML = `
       <h3>Test Messages</h3>
       <button onclick="sendTestMessage('position')">Position Update</button>
       <button onclick="sendTestMessage('obstacle')">Obstacle Detected</button>
       <button onclick="sendTestMessage('error')">Error Message</button>
+     <button onclick="sendTestMessage('ack')">Acknowledgment</button>
   `;
-  dashboard.appendChild(testButtons);
+    dashboard.appendChild(testButtons);
+    // Get the existing canvas element from the HTML
+    const mapCanvas = document.getElementById('robot-canvas');
 
-  window.sendTestMessage = function(type) {
-      let msg;
-      const timestamp = Math.floor(Date.now() / 1000);
-      const robotId = `robot_${Math.floor(Math.random() * 4) + 1}`;
-      
-      switch(type) {
-          case 'position':
-              msg = {
-                  sender: robotId,
-                  type: "position_update",
-                  timestamp: timestamp,
-                  version: "1.0",
-                  data: {
-                      x: Math.floor(Math.random() * 20),
-                      y: Math.floor(Math.random() * 20),
-                      direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 8)]
-                  }
-              };
-              break;
-              
-          case 'obstacle':
-              msg = {
-                  sender: robotId,
-                  type: "obstacle_detected",
-                  timestamp: timestamp,
-                  data: {
-                      x: Math.floor(Math.random() * 20),
-                      y: Math.floor(Math.random() * 20),
-                      obstacle_type: ["wall", "object", "person", "unknown"][Math.floor(Math.random() * 4)]
-                  }
-              };
-              break;
-              
-          case 'error':
-              msg = {
-                  sender: robotId,
-                  type: "error",
-                  timestamp: timestamp,
-                  data: {
-                      error_code: "E" + Math.floor(Math.random() * 200),
-                      error_message: "Test error message\nWith multiple lines\nFor testing purposes"
-                  }
-              };
-              break;
-      }
-      
-      client.onMessageArrived({
-          destinationName: `robots/${type === 'position' ? 'position_updates' : type + 's'}`,
-          payloadString: JSON.stringify(msg)
-      });
-  };
-  function updateTime() {
-    document.getElementById('current-time').textContent = new Date().toLocaleString();
-  }
-  setInterval(updateTime, 1000);
-  updateTime();
-  document.getElementById('task-assignment-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-    
-      const robotId = document.getElementById('robot-select').value;
-      const task = document.getElementById('task-name').value.trim();
-      const targetX = parseInt(document.getElementById('target-x').value);
-      const targetY = parseInt(document.getElementById('target-y').value);
-      const timestamp = Math.floor(Date.now() / 1000);
-    
-      if (!task || isNaN(targetX) || isNaN(targetY)) {
-        alert("Please fill out all fields.");
-        return;
-      }
-    
-      const message = new Paho.Message(JSON.stringify({
-        sender: 'dashboard',
-        type: 'task_assignment',
-        version: '1.0',
-        timestamp: timestamp,
-        data: {
-          robot_id: robotId,
-          task: task,
-          target_x: targetX,
-          target_y: targetY
+    // Function to draw the map
+    function drawMap() {
+        const ctx = mapCanvas.getContext('2d');
+        ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height); // Clear the canvas before each draw
+
+        const cellSize = 80; // Size of each grid cell
+        const cols = 10;     // Number of columns
+        const rows = 10;     // Number of rows
+
+        // Draw grid
+        ctx.strokeStyle = '#ccc';
+        for (let x = 0; x <= cols; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * cellSize, 0);
+            ctx.lineTo(x * cellSize, mapCanvas.height);
+            ctx.stroke();
         }
-      }));
-    
-      message.destinationName = 'server/tasks';
-      client.send(message);
-    
-      addLog(`Sent task: ${robotId} to ${task} at (${targetX}, ${targetY})`);
-    
-      this.reset();
+        for (let y = 0; y <= rows; y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, y * cellSize);
+            ctx.lineTo(mapCanvas.width, y * cellSize);
+            ctx.stroke();
+        }
+
+        // Draw robots
+        function getColorForRobotIndex(index) {
+            const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#FF8C00', '#8A2BE2', '#FF6347', '#7FFF00'];
+            return colors[index % colors.length];
+        }
+
+        Object.values(robots).forEach((robot, index) => {
+            if (!robot.online) return;
+
+            const robotColor = getColorForRobotIndex(index);
+            const drawX = (robot.x - 1) * cellSize + 4;  // shift 1-based -> 0-based
+            const drawY = (robot.y - 1) * cellSize + 4;
+
+            ctx.fillStyle = robotColor;
+            ctx.fillRect(drawX, drawY, cellSize - 8, cellSize - 8);
+
+            ctx.fillStyle = 'white';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(
+                robot.name.replace('Robot ', 'R'),
+                drawX + 2,  // tweak offsets as you like
+                drawY + 12
+            );
+        });
+
+        // Draw obstacles as black blocks with label
+        obstacles.forEach(ob => {
+            const ox = (ob.x - 1) * cellSize + 4;   // subtract 1 if needed
+            const oy = (ob.y - 1) * cellSize + 4;
+
+            ctx.fillStyle = 'black';
+            ctx.fillRect(ox, oy, cellSize - 8, cellSize - 8);
+
+            ctx.fillStyle = 'white';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(ob.obstacle_type, ox + 2, oy + 12);
+        });
+
+    }
+
+    // Call the drawMap function at regular intervals
+    setInterval(drawMap, 1000);  // Redraw every 1000ms (1 second)
+
+
+    window.sendTestMessage = function (type) {
+        let msg;
+        const timestamp = Math.floor(Date.now() / 1000);
+        const robotId = `robot_${Math.floor(Math.random() * 4) + 1}`;
+
+        switch (type) {
+            case 'position':
+                msg = {
+                    sender: robotId,
+                    type: "position_update",
+                    timestamp: timestamp,
+                    version: "1.0",
+                    data: {
+                        x: Math.floor(Math.random() * 20),
+                        y: Math.floor(Math.random() * 20),
+                        direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 4)]
+                    }
+                };
+                break;
+            case 'obstacle_detected':
+                if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.obstacle_type) {
+                    throw new Error('Invalid obstacle_detected structure');
+                }
+
+                // store it
+                obstacles.push({
+                    x: msg.data.x,
+                    y: msg.data.y,
+                    obstacle_type: msg.data.obstacle_type
+                });
+                addLog(`${msg.sender} detected ${msg.data.obstacle_type} at (${msg.data.x}, ${msg.data.y})`);
+                break;
+
+
+            case 'error':
+                msg = {
+                    sender: robotId,
+                    type: "error",
+                    timestamp: timestamp,
+                    data: {
+                        error_code: "E" + Math.floor(Math.random() * 200),
+                        error_message: "Test error message\nWith multiple lines\nFor testing purposes"
+                    }
+                };
+                break;
+            case 'ack':
+                // Generate a random message ID to acknowledge
+                const messageId = `msg_${Math.random().toString(16).substr(2, 8)}`;
+                msg = {
+                    sender: robotId,
+                    type: "acknowledgment",
+                    timestamp,
+                    version: "1.0",
+                    data: {
+                        received_message_id: messageId
+                    }
+                };
+                break;
+
+            default:
+                console.warn("Unknown test message type:", type);
+                return;
+        }
+
+        client.onMessageArrived({
+            destinationName: `robots/${type === 'position' ? 'position_updates' : type + 's'}`,
+            payloadString: JSON.stringify(msg)
+        });
+    };
+    function updateTime() {
+        document.getElementById('current-time').textContent = new Date().toLocaleString();
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+    document.getElementById('task-assignment-form').addEventListener('submit', function (e) {
+        e.preventDefault(); // Prevent form default submit action
+
+        const robotId = document.getElementById('robot-select').value;
+        const task = document.getElementById('task-name').value.trim();
+        const targetX = parseInt(document.getElementById('target-x').value);
+        const targetY = parseInt(document.getElementById('target-y').value);
+        const timestamp = Math.floor(Date.now() / 1000);
+
+        if (!task || isNaN(targetX) || isNaN(targetY)) {
+            alert("Please fill out all fields.");
+            return;
+        }
+
+        const message = new Paho.Message(JSON.stringify({
+            sender: 'dashboard',
+            type: 'task_assignment',
+            version: '1.0',
+            timestamp: timestamp,
+            data: {
+                robot_id: robotId,
+                task: task,
+                target_x: targetX,
+                target_y: targetY
+            }
+        }));
+
+        message.destinationName = 'server/tasks';
+        client.send(message);
+
+        addLog(`Sent task: ${robotId} to ${task} at (${targetX}, ${targetY})`);
+
+        this.reset(); // Reset the form after submitting
     });
+
+    // Add event listener to focus the next field on Enter press
+    const formInputs = document.querySelectorAll('#task-assignment-form input, #task-assignment-form select');
+
+    formInputs.forEach((input, index) => {
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();  // Prevent the default form submission on Enter key
+
+                // Move focus to the next input if it's filled (skip if empty)
+                if (input.value.trim() !== '' || input.type === 'select-one') {
+                    const nextInput = formInputs[index + 1];
+                    if (nextInput) {
+                        nextInput.focus();
+                    }
+                }
+            }
+        });
+    });
+
+    // Check if all fields are filled when pressing Enter on the last input, and simulate clicking the submit button
+    document.getElementById('task-assignment-form').addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            const robotId = document.getElementById('robot-select').value;
+            const task = document.getElementById('task-name').value.trim();
+            const targetX = parseInt(document.getElementById('target-x').value);
+            const targetY = parseInt(document.getElementById('target-y').value);
+
+            if (robotId && task && !isNaN(targetX) && !isNaN(targetY)) {
+                // Simulate clicking the submit button when all fields are filled
+                document.querySelector('button[type="submit"]').click();
+            }
+        }
+    });
+
+    document.getElementById('emergency-stop').addEventListener('click', function () {
+        const stopMessage = {
+            sender: 'dashboard',
+            type: 'emergency_stop',
+            timestamp: Math.floor(Date.now() / 1000),
+            version: PROTOCOL_VERSION,
+            data: {
+                message: 'Emergency STOP issued'
+            }
+        };
+        const message = new Paho.Message(JSON.stringify(stopMessage));
+        message.destinationName = 'server/emergency_stop';
+        client.send(message);
+        addLog('EMERGENCY STOP issued to all robots!');
+    });
+
 });
 
-      
