@@ -1,137 +1,383 @@
-/*DEZE CODE IS VAN EEN ANDER IOT DIE IK GEMAAKT HAD IK HEB EEN BEETJE HIER EEN DAAR VERANDERD MAAR IK WEET NIET OF DIE GOED WERKT.
-In feite hoeft er alleen van de simulatie regelmatig een payload te komen van de richting van de robot en van de esp of die aan of uit is en dan doet dit de rest!*/
-
 document.addEventListener('DOMContentLoaded', function() {
-    //robo states
-    const robots = {
-      'robot1': createRobotState('Robot 1'),
-      'robot2': createRobotState('Robot 2'), 
-      'robot3': createRobotState('Robot 3'),
-      'robot4': createRobotState('Robot 4')
-    };
-    
-    // Log for test topic
-    const testTopicLog = document.createElement('div');
-    testTopicLog.className = 'log';
-    testTopicLog.innerHTML = '<h3>Test Topic Log</h3><div id="test-topic-messages"></div>';
-    document.querySelector('.dashboard').appendChild(testTopicLog);
+  // Protocol version
+  const PROTOCOL_VERSION = "1.0";
   
-    function createRobotState(name) {
+  // Robot states
+  const robots = {
+      'robot_1': createRobotState('Robot 1'),
+      'robot_2': createRobotState('Robot 2'), 
+      'robot_3': createRobotState('Robot 3'),
+      'robot_4': createRobotState('Robot 4')
+  };
+  
+  // UI Elements
+  const dashboard = document.querySelector('.dashboard');
+  const robotContainer = document.getElementById('robot-container');
+  const messageLog = document.createElement('div');
+  messageLog.className = 'log';
+  messageLog.innerHTML = '<h3>Message Log</h3><div id="message-log-content"></div>';
+  dashboard.appendChild(messageLog);
+  
+  const taskContainer = document.createElement('div');
+  taskContainer.className = 'task-container';
+  taskContainer.innerHTML = '<h3>Task Assignments</h3><div id="task-list"></div>';
+  dashboard.appendChild(taskContainer);
+  
+  const obstacleContainer = document.createElement('div');
+  obstacleContainer.className = 'obstacle-container';
+  obstacleContainer.innerHTML = '<h3>Detected Obstacles</h3><div id="obstacle-list"></div>';
+  dashboard.appendChild(obstacleContainer);
+
+  // Connection status UI
+  const mqttStatus = document.getElementById('mqtt-status');
+  const mqttStatusIndicator = document.getElementById('mqtt-status-indicator');
+
+  function createRobotState(name) {
       return {
-        name: name,
-        online: false,
-        direction: 'N',
-        lastUpdate: null,
-        element: null
+          name: name,
+          online: false,
+          x: 0,
+          y: 0,
+          direction: 'north',
+          lastUpdate: null,
+          element: null,
+          currentTask: null
       };
-    }
-    
-    function updateRobotUI(robotId) {
+  }
+  
+  function updateRobotUI(robotId) {
       const robot = robots[robotId];
+      if (!robot) {
+          console.error(`Robot ${robotId} not found`);
+          return;
+      }
+
       if (!robot.element) {
-        robot.element = document.createElement('div');
-        robot.element.className = 'robot-card';
-        robot.element.innerHTML = `
+          robot.element = document.createElement('div');
+          robot.element.className = 'robot-card';
+          robot.element.id = `robot-${robotId}`;
+          robotContainer.appendChild(robot.element);
+      }
+
+      robot.element.innerHTML = `
           <h2>${robot.name}</h2>
           <div class="status-line">
-            <span class="status-label">Status:</span>
-            <span class="status-value">${robot.online ? 'ONLINE' : 'OFFLINE'}</span>
+              <span class="status-label">Status:</span>
+              <span class="status-value">${robot.online ? 'ONLINE' : 'OFFLINE'}</span>
           </div>
           <div class="status-line">
-            <span class="status-label">Direction:</span>
-            <span class="status-value">${robot.direction}</span>
-            <div class="direction">${getDirectionArrow(robot.direction)}</div>
+              <span class="status-label">Position:</span>
+              <span class="status-value">(${robot.x}, ${robot.y})</span>
           </div>
-        `;
-        document.getElementById('robot-container').appendChild(robot.element);
-      } else {
-        robot.element.querySelector('.status-value:nth-of-type(1)').textContent = 
-          robot.online ? 'ONLINE' : 'OFFLINE';
-        robot.element.querySelector('.status-value:nth-of-type(2)').textContent = 
-          robot.direction;
-        robot.element.querySelector('.direction').innerHTML = 
-          getDirectionArrow(robot.direction);
-      }
+          <div class="status-line">
+              <span class="status-label">Direction:</span>
+              <span class="status-value">${robot.direction}</span>
+              <div class="direction">${getDirectionArrow(robot.direction)}</div>
+          </div>
+          <div class="status-line">
+              <span class="status-label">Current Task:</span>
+              <span class="status-value">${robot.currentTask || 'None'}</span>
+          </div>
+          <div class="last-update">Last update: ${robot.lastUpdate || 'Never'}</div>
+      `;
+
       robot.element.classList.toggle('online', robot.online);
-    }
-    
-    function getDirectionArrow(dir) {
-      const arrows = { N: '↑', NE: '↗', E: '→', SE: '↘', S: '↓', SW: '↙', W: '←', NW: '↖' };
-      return arrows[dir] || dir;
-    }
-    
-    function addLog(message) {
-      const log = document.getElementById('message-log');
-      log.textContent = `${new Date().toLocaleTimeString()}: ${message}\n${log.textContent}`;
-    }
-    
-    function addTestTopicMessage(message) {
-      const log = document.getElementById('test-topic-messages');
-      log.textContent = `${new Date().toLocaleTimeString()}: ${message}\n${log.textContent}`;
-    }
+      robot.element.classList.toggle('offline', !robot.online);
+      
+      updateConnectedRobotsCount();
+  }
   
-    // Init MQTT
-    const client = new Paho.Client(
+  function getDirectionArrow(dir) {
+      const arrows = {
+          north: '↑', 
+          northeast: '↗',
+          east: '→',
+          southeast: '↘',
+          south: '↓',
+          southwest: '↙',
+          west: '←',
+          northwest: '↖'
+      };
+      return arrows[dir.toLowerCase()] || dir;
+  }
+  
+  function addLog(message) {
+      const log = document.getElementById('message-log-content');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      
+      // Handle multi-line messages
+      const lines = message.split('\n');
+      lines.forEach((line, index) => {
+          const lineElement = document.createElement('div');
+          if (index === 0) {
+              lineElement.textContent = `${new Date().toLocaleTimeString()}: ${line}`;
+          } else {
+              lineElement.textContent = `    ${line}`;
+              lineElement.style.marginLeft = '20px';
+          }
+          entry.appendChild(lineElement);
+      });
+      
+      log.insertBefore(entry, log.firstChild);
+      if (log.children.length > 100) {
+          log.removeChild(log.lastChild);
+      }
+  }
+  
+  function addTask(task) {
+      const taskList = document.getElementById('task-list');
+      const taskElement = document.createElement('div');
+      taskElement.className = 'task-item';
+      taskElement.innerHTML = `
+          <strong>${task.robot_id}</strong>: ${task.task} at (${task.target_x}, ${task.target_y})
+          <span class="task-time">${new Date(task.timestamp * 1000).toLocaleTimeString()}</span>
+      `;
+      taskList.insertBefore(taskElement, taskList.firstChild);
+      if (taskList.children.length > 20) {
+          taskList.removeChild(taskList.lastChild);
+      }
+  }
+  
+  function addObstacle(obstacle) {
+      const obstacleList = document.getElementById('obstacle-list');
+      const obstacleElement = document.createElement('div');
+      obstacleElement.className = 'obstacle-item';
+      obstacleElement.innerHTML = `
+          <strong>${obstacle.sender}</strong>: ${obstacle.obstacle_type} at (${obstacle.x}, ${obstacle.y})
+          <span class="obstacle-time">${new Date(obstacle.timestamp * 1000).toLocaleTimeString()}</span>
+      `;
+      obstacleList.insertBefore(obstacleElement, obstacleList.firstChild);
+      if (obstacleList.children.length > 20) {
+          obstacleList.removeChild(obstacleList.lastChild);
+      }
+  }
+
+  function updateConnectedRobotsCount() {
+      const connected = Object.values(robots).filter(r => r.online).length;
+      document.getElementById('connected-robots').textContent = connected;
+  }
+
+  function updateConnectionStatus(connected) {
+      mqttStatus.textContent = connected ? 'Connected to MQTT' : 'Disconnected from MQTT';
+      mqttStatusIndicator.className = connected ? 'status-indicator connected' : 'status-indicator disconnected';
+  }
+
+  // Initialize all robot UIs
+  Object.keys(robots).forEach(robotId => {
+      updateRobotUI(robotId);
+  });
+
+  // Init MQTT
+  const client = new Paho.Client(
       window.location.hostname,
       Number(443),
       '/mqtt',
       `dashboard-${Math.random().toString(16).substr(2, 8)}`
-    );
-    //init
-    client.connect({
+  );
+  
+  client.connect({
       userName: 'user',
       password: 'user123',
       useSSL: true,
       mqttVersion: 4,
       onSuccess: () => {
-        addLog('Connected to MQTT broker');
-        
-        // Subscribe to topics
-        Object.keys(robots).forEach(robotId => {
-          client.subscribe(`robot/${robotId}/status`);
-          client.subscribe(`robot/${robotId}/direction`);
-          updateRobotUI(robotId);
-        });
-        
-    
-        client.subscribe('test/topic');
+          updateConnectionStatus(true);
+          addLog('Connected to MQTT broker');
+          
+          // Subscribe to topics
+          client.subscribe('robots/position_updates');
+          client.subscribe('robots/obstacles');
+          client.subscribe('server/tasks');
+          client.subscribe('robots/acknowledgments');
+          client.subscribe('robots/errors');
+          
+          console.log('Subscribed to all topics');
       },
       onFailure: (err) => {
-        addLog(`Connection failed: ${err.errorMessage}`);
+          updateConnectionStatus(false);
+          addLog(`Connection failed: ${err.errorMessage}`);
+          console.error('Connection failed:', err);
       }
-    });
-    
-    client.onMessageArrived = (message) => {
+  });
+  
+  client.onMessageArrived = (message) => {
       const topic = message.destinationName;
       const payload = message.payloadString;
       
-      // Handle robot topics
-      if (topic.startsWith('robot/')) {
-        const topicParts = topic.split('/');
-        const robotId = topicParts[1];
-        const metric = topicParts[2];
-        
-        if (robots[robotId]) {
-          if (metric === 'status') {
-            robots[robotId].online = payload === 'online';
-          } else if (metric === 'direction') {
-            robots[robotId].direction = payload;
+      try {
+          const msg = JSON.parse(payload);
+          console.log('Received message:', msg);
+          
+          // Validate basic message structure
+          if (!msg.sender || !msg.type || !msg.timestamp) {
+              throw new Error('Invalid message structure - missing required fields');
           }
-          robots[robotId].lastUpdate = new Date().toLocaleTimeString();
-          updateRobotUI(robotId);
-        }
-        addLog(`${topic}: ${payload}`);
-      } 
-      // test/topic handler
-      else if (topic === 'test/topic') {
-        addTestTopicMessage(payload);
-        addLog(`Test topic: ${payload}`);
+          
+          // Check protocol version
+          if (msg.version && msg.version !== PROTOCOL_VERSION) {
+              addLog(`Version mismatch from ${msg.sender}: Expected ${PROTOCOL_VERSION}, got ${msg.version}`);
+              return;
+          }
+          
+          // Handle different message types
+          switch(msg.type.toLowerCase()) {
+              case 'position_update':
+                  if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.direction) {
+                      throw new Error('Invalid position_update structure');
+                  }
+                  
+                  if (robots[msg.sender]) {
+                      robots[msg.sender].online = true;
+                      robots[msg.sender].x = msg.data.x;
+                      robots[msg.sender].y = msg.data.y;
+                      robots[msg.sender].direction = msg.data.direction;
+                      robots[msg.sender].lastUpdate = new Date(msg.timestamp * 1000).toLocaleTimeString();
+                      updateRobotUI(msg.sender);
+                      addLog(`${msg.sender} position: (${msg.data.x}, ${msg.data.y}) facing ${msg.data.direction}`);
+                  } else {
+                      addLog(`Received update for unknown robot: ${msg.sender}`);
+                  }
+                  break;
+                  
+              case 'obstacle_detected':
+                  if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.obstacle_type) {
+                      throw new Error('Invalid obstacle_detected structure');
+                  }
+                  
+                  addObstacle({
+                      sender: msg.sender,
+                      x: msg.data.x,
+                      y: msg.data.y,
+                      obstacle_type: msg.data.obstacle_type,
+                      timestamp: msg.timestamp
+                  });
+                  addLog(`${msg.sender} detected ${msg.data.obstacle_type} at (${msg.data.x}, ${msg.data.y})`);
+                  break;
+                  
+              case 'task_assignment':
+                  if (!msg.data || !msg.data.robot_id || !msg.data.task || 
+                      msg.data.target_x === undefined || msg.data.target_y === undefined) {
+                      throw new Error('Invalid task_assignment structure');
+                  }
+                  
+                  if (robots[msg.data.robot_id]) {
+                      robots[msg.data.robot_id].currentTask = msg.data.task;
+                      updateRobotUI(msg.data.robot_id);
+                  }
+                  addTask({
+                      robot_id: msg.data.robot_id,
+                      task: msg.data.task,
+                      target_x: msg.data.target_x,
+                      target_y: msg.data.target_y,
+                      timestamp: msg.timestamp
+                  });
+                  addLog(`Task assigned: ${msg.data.robot_id} to ${msg.data.task} at (${msg.data.target_x}, ${msg.data.target_y})`);
+                  break;
+                  
+              case 'acknowledgment':
+                  if (!msg.data || !msg.data.received_message_id) {
+                      throw new Error('Invalid acknowledgment structure');
+                  }
+                  addLog(`${msg.sender} acknowledged: ${msg.data.received_message_id}`);
+                  break;
+                  
+              case 'error':
+                  if (!msg.data || !msg.data.error_code || !msg.data.error_message) {
+                      throw new Error('Invalid error structure');
+                  }
+                  addLog(`ERROR from ${msg.sender}: ${msg.data.error_message} (code ${msg.data.error_code})`);
+                  break;
+                  
+              default:
+                  addLog(`Unknown message type from ${msg.sender}: ${msg.type}`);
+          }
+      } catch (e) {
+          addLog(`Error processing message: ${e.message}`);
+          console.error('Error processing message:', e, 'Raw message:', message);
       }
-    };
-    
-    client.onConnectionLost = (response) => {
+  };
+  
+  client.onConnectionLost = (response) => {
+      updateConnectionStatus(false);
       if (response.errorCode !== 0) {
-        addLog(`Connection lost: ${response.errorMessage}`);
+          addLog(`Connection lost: ${response.errorMessage}`);
+          console.error('Connection lost:', response);
       }
-    };
-  });
+  };
+  
+  // Periodically mark robots as offline if no updates received
+  setInterval(() => { 
+      const now = Date.now();
+      Object.keys(robots).forEach(robotId => {
+          const robot = robots[robotId];
+          if (robot.lastUpdate && (now - new Date(robot.lastUpdate).getTime() > 30000)) {
+              robot.online = false;
+              updateRobotUI(robotId);
+          }
+      });
+  }, 10000);
+
+  // Add test buttons for development
+  const testButtons = document.createElement('div');
+  testButtons.className = 'test-buttons';
+  testButtons.innerHTML = `
+      <h3>Test Messages</h3>
+      <button onclick="sendTestMessage('position')">Position Update</button>
+      <button onclick="sendTestMessage('obstacle')">Obstacle Detected</button>
+      <button onclick="sendTestMessage('error')">Error Message</button>
+  `;
+  dashboard.appendChild(testButtons);
+
+  window.sendTestMessage = function(type) {
+      let msg;
+      const timestamp = Math.floor(Date.now() / 1000);
+      const robotId = `robot_${Math.floor(Math.random() * 4) + 1}`;
+      
+      switch(type) {
+          case 'position':
+              msg = {
+                  sender: robotId,
+                  type: "position_update",
+                  timestamp: timestamp,
+                  version: "1.0",
+                  data: {
+                      x: Math.floor(Math.random() * 20),
+                      y: Math.floor(Math.random() * 20),
+                      direction: ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest"][Math.floor(Math.random() * 8)]
+                  }
+              };
+              break;
+              
+          case 'obstacle':
+              msg = {
+                  sender: robotId,
+                  type: "obstacle_detected",
+                  timestamp: timestamp,
+                  data: {
+                      x: Math.floor(Math.random() * 20),
+                      y: Math.floor(Math.random() * 20),
+                      obstacle_type: ["wall", "object", "person", "unknown"][Math.floor(Math.random() * 4)]
+                  }
+              };
+              break;
+              
+          case 'error':
+              msg = {
+                  sender: robotId,
+                  type: "error",
+                  timestamp: timestamp,
+                  data: {
+                      error_code: "E" + Math.floor(Math.random() * 200),
+                      error_message: "Test error message\nWith multiple lines\nFor testing purposes"
+                  }
+              };
+              break;
+      }
+      
+      client.onMessageArrived({
+          destinationName: `robots/${type === 'position' ? 'position_updates' : type + 's'}`,
+          payloadString: JSON.stringify(msg)
+      });
+  };
+});

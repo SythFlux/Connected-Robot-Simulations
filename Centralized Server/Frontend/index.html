@@ -3,20 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Robot Dashboard</title>
+  <title>Robot Control Dashboard</title>
   <link rel="stylesheet" href="/style/styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-  <div class="dashboard">
-    <h1>IDK WHAT TO PUT HERE!</h1>
-    
-    <div class="robot-grid" id="robot-container">
-      <!-- Gebeurt automatisch --> 
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1><i class="fas fa-robot"></i> Robot Control Dashboard</h1>
+      <div class="connection-status">
+        <span id="mqtt-status">Connecting to MQTT...</span>
+        <span class="status-indicator" id="mqtt-status-indicator"></span>
+      </div>
     </div>
-    <div class="log" id="message-log"></div>
-  </div>
-  
+    <div class="dashboard-info">
+      <span id="current-time"></span>
+      <span>Protocol Version: <strong>1.0</strong></span>
+      <span>Connected Robots: <strong id="connected-robots">0</strong>/4</span>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <section class="dashboard-section">
+      <h2><i class="fas fa-robot"></i> Robot Status</h2>
+      <div class="robot-grid" id="robot-container">
+      </div>
+    </section>
+
+    <div class="dashboard-columns">
+      <section class="dashboard-section">
+        <h2><i class="fas fa-tasks"></i> Task Assignments</h2>
+        <div class="task-container">
+          <div id="task-list"></div>
+        </div>
+      </section>
+
+      <section class="dashboard-section">
+        <h2><i class="fas fa-exclamation-triangle"></i> Detected Obstacles</h2>
+        <div class="obstacle-container">
+          <div id="obstacle-list"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
   <script src="/src/script.js"></script>
+  <script>
+    // Update current time
+    function updateTime() {
+      document.getElementById('current-time').textContent = new Date().toLocaleString();
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+  </script>
 </body>
 </html>
