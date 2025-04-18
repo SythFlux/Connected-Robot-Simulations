@@ -385,11 +385,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function drawMap() {
         const ctx = mapCanvas.getContext('2d');
-        ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
+        ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height); // Clear the canvas
     
-        const cellSize = 80;
-        const cols = 10;
-        const rows = 10;
+        const cellSize = 80;  // Size of each cell
+        const cols = 10;      // Number of columns (0 to 9)
+        const rows = 10;      // Number of rows (0 to -9)
     
         // Draw grid
         ctx.strokeStyle = '#ccc';
@@ -406,8 +406,8 @@ document.addEventListener('DOMContentLoaded', function () {
             ctx.stroke();
         }
     
-        // Helper to convert Y from 0 to -10 => 0 to 10 (canvas coordinates)
-        const convertY = y => Math.abs(y) * cellSize;
+        // Adjust the Y-axis: Flip so that top is 0, and bottom is -9
+        const convertY = y => (9 - Math.abs(y)); // Convert the Y-axis to fit canvas (top = 0, bottom = -9)
     
         // Draw robots
         function getColorForRobotIndex(index) {
@@ -419,11 +419,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!robot.online) return;
     
             const robotColor = getColorForRobotIndex(index);
-            const drawX = (robot.x - 1) * cellSize;
-            const drawY = (Math.abs(robot.y) - 1) * cellSize;
+            const drawX = robot.x * cellSize;            // X-axis from 0 to 9
+            const drawY = (Math.abs(robot.y) * cellSize); // Convert Y-axis (flip to canvas system)
     
             ctx.fillStyle = robotColor;
-            ctx.fillRect(drawX + 4, drawY + 4, cellSize - 8, cellSize - 8);
+            ctx.fillRect(drawX + 4, drawY + 4, cellSize - 8, cellSize - 8);  // Draw robot
     
             ctx.fillStyle = 'white';
             ctx.font = '10px sans-serif';
@@ -432,20 +432,23 @@ document.addEventListener('DOMContentLoaded', function () {
     
         // Draw obstacles
         obstacles.forEach(ob => {
-            const drawX = (ob.x - 1) * cellSize;
-            const drawY = (Math.abs(ob.y) - 1) * cellSize;
+            const drawX = ob.x * cellSize;              // X-axis from 0 to 9
+            const drawY = (Math.abs(ob.y) * cellSize);   // Convert Y-axis (flip to canvas system)
     
             ctx.fillStyle = 'black';
-            ctx.fillRect(drawX + 4, drawY + 4, cellSize - 8, cellSize - 8);
+            ctx.fillRect(drawX + 4, drawY + 4, cellSize - 8, cellSize - 8);  // Draw obstacle
     
             ctx.fillStyle = 'white';
             ctx.font = '10px sans-serif';
-            ctx.fillText(ob.obstacle_type, drawX + 4, drawY + 14);
+            ctx.fillText(ob.obstacle_type, drawX + 4, drawY + 14);  // Label the obstacle
         });
-    }    
-    // Call the drawMap function at regular intervals
+    }
+    
+    // Redraw every second
     setInterval(drawMap, 1000);  // Redraw every 1000ms (1 second)
-
+    
+    
+    
 
     window.sendTestMessage = function (type) {
         let msg;
@@ -455,30 +458,30 @@ document.addEventListener('DOMContentLoaded', function () {
         switch (type) {
             case 'position':
                 msg = {
-                  sender: robotId,
-                  type: "position_update",
-                  timestamp: timestamp,
-                  version: "1.3",
-                  data: {
-                    x: Math.floor(Math.random() * 11),       // 0 to 10
-                    y: -Math.floor(Math.random() * 11),      // 0 to -10
-                    direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 4)]
-                  }
+                    sender: robotId,
+                    type: "position_update",
+                    timestamp: timestamp,
+                    version: "1.3",
+                    data: {
+                        // Update the test position to match the 0-9 and 0-(-9) mapping
+                        x: Math.floor(Math.random() * 10),  // X is 0 to 9
+                        y: Math.floor(Math.random() * 10) - 9,  // Y is 0 to -9 (e.g., -9 to 0)
+                        direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 4)]
+                    }
                 };
                 break;
-            
-              case 'obstacle':
+            case 'obstacle':
                 msg = {
-                  sender: robotId,
-                  type: "obstacle_detected",
-                  timestamp: timestamp,
-                  version: "1.3",
-                  message_id: `msg_${Math.random().toString(16).substr(2, 8)}`,
-                  data: {
-                    x: Math.floor(Math.random() * 11),       // 0 to 10
-                    y: -Math.floor(Math.random() * 11),      // 0 to -10
-                    obstacle_type: ["wall", "object", "person", "unknown"][Math.floor(Math.random() * 4)]
-                  }
+                    sender: robotId,
+                    type: "obstacle_detected",
+                    timestamp: timestamp,
+                    version: "1.3",
+                    data: {
+                        // Update the test obstacle to match the 0-9 and 0-(-9) mapping
+                        x: Math.floor(Math.random() * 10),  // X is 0 to 9
+                        y: Math.floor(Math.random() * 10) - 9,  // Y is 0 to -9
+                        obstacle_type: ["wall", "object", "person", "unknown"][Math.floor(Math.random() * 4)]
+                    }
                 };
                 break;
 
