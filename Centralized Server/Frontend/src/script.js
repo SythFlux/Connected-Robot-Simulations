@@ -1,12 +1,13 @@
-const obstacles = []; // Array to store obstacle information
+
 document.addEventListener('DOMContentLoaded', function () {
     // Protocol version
-    const PROTOCOL_VERSION = "1.0";
+    const PROTOCOL_VERSION = "1.3";
 
     // Function to add an obstacle to the array
     function addObstacle(obstacle) {
         obstacles.push(obstacle);
     }
+    const obstacles = []; // Array to store obstacle information
     // Robot states
     const robots = {
         'robot_1': createRobotState('Robot 1'),
@@ -269,23 +270,31 @@ document.addEventListener('DOMContentLoaded', function () {
                         addLog(`Received update for unknown robot: ${msg.sender}`);
                     }
                     break;
-
-                case 'obstacle_detected':
-                    if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.obstacle_type) {
-                        throw new Error('Invalid obstacle_detected structure');
-                    }
-
-                    addObstacle({
-                        sender: msg.sender,
-                        x: msg.data.x,
-                        y: msg.data.y,
-                        obstacle_type: msg.data.obstacle_type,
-                        timestamp: msg.timestamp
-                    });
-
-                    addLog(`${msg.sender} detected ${msg.data.obstacle_type} at (${msg.data.x}, ${msg.data.y})`);
-                    break;
-
+                    case 'obstacle_detected':
+                        if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.obstacle_type) {
+                          addLog('Invalid obstacle_detected structure');
+                          return;
+                        }
+                  
+                        // 1) Show it in the UI list
+                        addObstacle({
+                          sender: msg.sender,
+                          x: msg.data.x,
+                          y: msg.data.y,
+                          obstacle_type: msg.data.obstacle_type,
+                          timestamp: msg.timestamp
+                        });
+                  
+                        // 2) Also store it for canvas drawing
+                        obstacles.push({
+                          x: msg.data.x,
+                          y: msg.data.y,
+                          obstacle_type: msg.data.obstacle_type,
+                          timestamp: msg.timestamp
+                        });
+                  
+                        addLog(`${msg.sender} detected ${msg.data.obstacle_type} at (${msg.data.x}, ${msg.data.y})`);
+                        break;
 
                 case 'task_assignment':
                     if (!msg.data || !msg.data.robot_id || !msg.data.task ||
@@ -426,16 +435,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Draw obstacles as black blocks with label
         obstacles.forEach(ob => {
-            const ox = (ob.x - 1) * cellSize + 4;   // subtract 1 if needed
+            const ox = (ob.x - 1) * cellSize + 4;
             const oy = (ob.y - 1) * cellSize + 4;
-
+        
             ctx.fillStyle = 'black';
             ctx.fillRect(ox, oy, cellSize - 8, cellSize - 8);
-
+        
             ctx.fillStyle = 'white';
             ctx.font = '10px sans-serif';
             ctx.fillText(ob.obstacle_type, ox + 2, oy + 12);
-        });
+          });
 
     }
 
@@ -453,43 +462,45 @@ document.addEventListener('DOMContentLoaded', function () {
                 msg = {
                     sender: robotId,
                     type: "position_update",
-                    timestamp: timestamp,
+                    timestamp,
                     version: "1.0",
                     data: {
-                        x: Math.floor(Math.random() * 20),
-                        y: Math.floor(Math.random() * 20),
+                        x: Math.floor(Math.random() * 10) + 1,
+                        y: Math.floor(Math.random() * 10) + 1,
                         direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 4)]
                     }
                 };
                 break;
-            case 'obstacle_detected':
-                if (!msg.data || msg.data.x === undefined || msg.data.y === undefined || !msg.data.obstacle_type) {
-                    throw new Error('Invalid obstacle_detected structure');
-                }
 
-                // store it
-                obstacles.push({
-                    x: msg.data.x,
-                    y: msg.data.y,
-                    obstacle_type: msg.data.obstacle_type
-                });
-                addLog(`${msg.sender} detected ${msg.data.obstacle_type} at (${msg.data.x}, ${msg.data.y})`);
+            case 'obstacle':
+                // build the test obstacle message
+                msg = {
+                    sender: robotId,
+                    type: "obstacle_detected",
+                    timestamp,
+                    version: "1.0",
+                    data: {
+                        x: Math.floor(Math.random() * 10) + 1,
+                        y: Math.floor(Math.random() * 10) + 1,
+                        obstacle_type: ["wall", "object", "person", "unknown"][Math.floor(Math.random() * 4)]
+                    }
+                };
                 break;
-
 
             case 'error':
                 msg = {
                     sender: robotId,
                     type: "error",
-                    timestamp: timestamp,
+                    timestamp,
+                    version: "1.0",
                     data: {
                         error_code: "E" + Math.floor(Math.random() * 200),
                         error_message: "Test error message\nWith multiple lines\nFor testing purposes"
                     }
                 };
                 break;
+
             case 'ack':
-                // Generate a random message ID to acknowledge
                 const messageId = `msg_${Math.random().toString(16).substr(2, 8)}`;
                 msg = {
                     sender: robotId,
@@ -507,11 +518,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
         }
 
+        // map type to your MQTT topic
+        const topicMap = {
+            position: "robots/position_updates",
+            obstacle: "robots/obstacles",
+            error: "robots/errors",
+            ack: "robots/acknowledgments"
+        };
+
         client.onMessageArrived({
-            destinationName: `robots/${type === 'position' ? 'position_updates' : type + 's'}`,
+            destinationName: topicMap[type],
             payloadString: JSON.stringify(msg)
         });
     };
+
     function updateTime() {
         document.getElementById('current-time').textContent = new Date().toLocaleString();
     }
