@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     sender: robotId,
                     type: "position_update",
                     timestamp,
-                    version: "1.0",
+                    version: "1.3",
                     data: {
                         x: Math.floor(Math.random() * 10) + 1,
                         y: Math.floor(Math.random() * 10) + 1,
@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     sender: robotId,
                     type: "obstacle_detected",
                     timestamp,
-                    version: "1.0",
+                    version: "1.3",
                     data: {
                         x: Math.floor(Math.random() * 10) + 1,
                         y: Math.floor(Math.random() * 10) + 1,
@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     sender: robotId,
                     type: "error",
                     timestamp,
-                    version: "1.0",
+                    version: "1.3",
                     data: {
                         error_code: "E" + Math.floor(Math.random() * 200),
                         error_message: "Test error message\nWith multiple lines\nFor testing purposes"
@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     sender: robotId,
                     type: "acknowledgment",
                     timestamp,
-                    version: "1.0",
+                    version: "1.3",
                     data: {
                         received_message_id: messageId
                     }
@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const message = new Paho.Message(JSON.stringify({
             sender: 'dashboard',
             type: 'task_assignment',
-            version: '1.0',
+            version: '1.3',
             timestamp: timestamp,
             data: {
                 robot_id: robotId,
