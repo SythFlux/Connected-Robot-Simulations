@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Protocol version
     const PROTOCOL_VERSION = "1.3";
-
+    const offset = 5;
     // Function to add an obstacle to the array
     function addObstacle(obstacle) {
         obstacles.push(obstacle);
@@ -416,35 +416,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
         Object.values(robots).forEach((robot, index) => {
             if (!robot.online) return;
-
+          
             const robotColor = getColorForRobotIndex(index);
-            const drawX = (robot.x - 1) * cellSize + 4;  // shift 1-based -> 0-based
-            const drawY = (robot.y - 1) * cellSize + 4;
-
+          
+            const drawX = (robot.x + offset) * cellSize;
+            const drawY = (robot.y + offset) * cellSize;
+          
             ctx.fillStyle = robotColor;
-            ctx.fillRect(drawX, drawY, cellSize - 8, cellSize - 8);
-
+            ctx.fillRect(drawX + 4, drawY + 4, cellSize - 8, cellSize - 8);
+          
             ctx.fillStyle = 'white';
             ctx.font = '10px sans-serif';
-            ctx.fillText(
-                robot.name.replace('Robot ', 'R'),
-                drawX + 2,  // tweak offsets as you like
-                drawY + 12
-            );
-        });
+            ctx.fillText(robot.name.replace('Robot ', 'R'), drawX + 6, drawY + 14);
+          });
 
         // Draw obstacles as black blocks with label
         obstacles.forEach(ob => {
-            const ox = (ob.x - 1) * cellSize + 4;
-            const oy = (ob.y - 1) * cellSize + 4;
-        
+            const drawX = (ob.x + offset) * cellSize;
+            const drawY = (ob.y + offset) * cellSize;
+          
             ctx.fillStyle = 'black';
-            ctx.fillRect(ox, oy, cellSize - 8, cellSize - 8);
-        
+            ctx.fillRect(drawX + 4, drawY + 4, cellSize - 8, cellSize - 8);
+          
             ctx.fillStyle = 'white';
             ctx.font = '10px sans-serif';
-            ctx.fillText(ob.obstacle_type, ox + 2, oy + 12);
+            ctx.fillText(ob.obstacle_type, drawX + 4, drawY + 14);
           });
+          
 
     }
 
@@ -460,32 +458,31 @@ document.addEventListener('DOMContentLoaded', function () {
         switch (type) {
             case 'position':
                 msg = {
-                    sender: robotId,
-                    type: "position_update",
-                    timestamp,
-                    version: "1.3",
-                    data: {
-                        x: Math.floor(Math.random() * 10) + 1,
-                        y: Math.floor(Math.random() * 10) + 1,
-                        direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 4)]
-                    }
+                  sender: robotId,
+                  type: "position_update",
+                  timestamp: timestamp,
+                  version: "1.3",
+                  data: {
+                    x: Math.floor(Math.random() * 11) - 5,  // -5 to 5
+                    y: Math.floor(Math.random() * 11) - 5,  // -5 to 5
+                    direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 4)]
+                  }
                 };
                 break;
-
-            case 'obstacle':
-                // build the test obstacle message
-                msg = {
-                    sender: robotId,
-                    type: "obstacle_detected",
-                    timestamp,
-                    version: "1.3",
-                    data: {
-                        x: Math.floor(Math.random() * 10) + 1,
-                        y: Math.floor(Math.random() * 10) + 1,
+                case 'obstacle':
+                    msg = {
+                      sender: robotId,
+                      type: "obstacle_detected",
+                      timestamp: timestamp,
+                      version: "1.3",
+                      message_id: `msg_${Math.random().toString(16).substr(2, 8)}`,
+                      data: {
+                        x: Math.floor(Math.random() * 11) - 5,  // -5 to 5
+                        y: Math.floor(Math.random() * 11) - 5,  // -5 to 5
                         obstacle_type: ["wall", "object", "person", "unknown"][Math.floor(Math.random() * 4)]
-                    }
-                };
-                break;
+                      }
+                    };
+                    break;
 
             case 'error':
                 msg = {
