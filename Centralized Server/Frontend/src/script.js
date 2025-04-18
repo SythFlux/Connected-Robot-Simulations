@@ -2,7 +2,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Protocol version
     const PROTOCOL_VERSION = "1.3";
-    const offset = 5;
     // Function to add an obstacle to the array
     function addObstacle(obstacle) {
         obstacles.push(obstacle);
@@ -384,15 +383,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Get the existing canvas element from the HTML
     const mapCanvas = document.getElementById('robot-canvas');
 
-    // Function to draw the map
     function drawMap() {
         const ctx = mapCanvas.getContext('2d');
-        ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height); // Clear the canvas before each draw
-
-        const cellSize = 80; // Size of each grid cell
-        const cols = 10;     // Number of columns
-        const rows = 10;     // Number of rows
-
+        ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
+    
+        const cellSize = 80;
+        const cols = 10;
+        const rows = 10;
+    
         // Draw grid
         ctx.strokeStyle = '#ccc';
         for (let x = 0; x <= cols; x++) {
@@ -407,45 +405,44 @@ document.addEventListener('DOMContentLoaded', function () {
             ctx.lineTo(mapCanvas.width, y * cellSize);
             ctx.stroke();
         }
-
+    
+        // Helper to convert Y from 0 to -10 => 0 to 10 (canvas coordinates)
+        const convertY = y => Math.abs(y) * cellSize;
+    
         // Draw robots
         function getColorForRobotIndex(index) {
             const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#FF8C00', '#8A2BE2', '#FF6347', '#7FFF00'];
             return colors[index % colors.length];
         }
-
+    
         Object.values(robots).forEach((robot, index) => {
             if (!robot.online) return;
-          
+    
             const robotColor = getColorForRobotIndex(index);
-          
-            const drawX = (robot.x + offset) * cellSize;
-            const drawY = (robot.y + offset) * cellSize;
-          
+            const drawX = (robot.x - 1) * cellSize;
+            const drawY = (Math.abs(robot.y) - 1) * cellSize;
+    
             ctx.fillStyle = robotColor;
             ctx.fillRect(drawX + 4, drawY + 4, cellSize - 8, cellSize - 8);
-          
+    
             ctx.fillStyle = 'white';
             ctx.font = '10px sans-serif';
             ctx.fillText(robot.name.replace('Robot ', 'R'), drawX + 6, drawY + 14);
-          });
-
-        // Draw obstacles as black blocks with label
+        });
+    
+        // Draw obstacles
         obstacles.forEach(ob => {
-            const drawX = (ob.x + offset) * cellSize;
-            const drawY = (ob.y + offset) * cellSize;
-          
+            const drawX = (ob.x - 1) * cellSize;
+            const drawY = (Math.abs(ob.y) - 1) * cellSize;
+    
             ctx.fillStyle = 'black';
             ctx.fillRect(drawX + 4, drawY + 4, cellSize - 8, cellSize - 8);
-          
+    
             ctx.fillStyle = 'white';
             ctx.font = '10px sans-serif';
             ctx.fillText(ob.obstacle_type, drawX + 4, drawY + 14);
-          });
-          
-
-    }
-
+        });
+    }    
     // Call the drawMap function at regular intervals
     setInterval(drawMap, 1000);  // Redraw every 1000ms (1 second)
 
@@ -463,26 +460,27 @@ document.addEventListener('DOMContentLoaded', function () {
                   timestamp: timestamp,
                   version: "1.3",
                   data: {
-                    x: Math.floor(Math.random() * 11) - 5,  // -5 to 5
-                    y: Math.floor(Math.random() * 11) - 5,  // -5 to 5
+                    x: Math.floor(Math.random() * 11),       // 0 to 10
+                    y: -Math.floor(Math.random() * 11),      // 0 to -10
                     direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 4)]
                   }
                 };
                 break;
-                case 'obstacle':
-                    msg = {
-                      sender: robotId,
-                      type: "obstacle_detected",
-                      timestamp: timestamp,
-                      version: "1.3",
-                      message_id: `msg_${Math.random().toString(16).substr(2, 8)}`,
-                      data: {
-                        x: Math.floor(Math.random() * 11) - 5,  // -5 to 5
-                        y: Math.floor(Math.random() * 11) - 5,  // -5 to 5
-                        obstacle_type: ["wall", "object", "person", "unknown"][Math.floor(Math.random() * 4)]
-                      }
-                    };
-                    break;
+            
+              case 'obstacle':
+                msg = {
+                  sender: robotId,
+                  type: "obstacle_detected",
+                  timestamp: timestamp,
+                  version: "1.3",
+                  message_id: `msg_${Math.random().toString(16).substr(2, 8)}`,
+                  data: {
+                    x: Math.floor(Math.random() * 11),       // 0 to 10
+                    y: -Math.floor(Math.random() * 11),      // 0 to -10
+                    obstacle_type: ["wall", "object", "person", "unknown"][Math.floor(Math.random() * 4)]
+                  }
+                };
+                break;
 
             case 'error':
                 msg = {
