@@ -409,6 +409,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Adjust the Y-axis: Flip so that top is 0, and bottom is -9
         const convertY = y => (9 - Math.abs(y)); // Convert the Y-axis to fit canvas (top = 0, bottom = -9)
     
+        // Helper function to check if a coordinate is within the valid boundary
+        const isWithinBounds = (x, y) => x >= 0 && x <= 9 && y >= -9 && y <= 0;
+    
         // Draw robots
         function getColorForRobotIndex(index) {
             const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#FF8C00', '#8A2BE2', '#FF6347', '#7FFF00'];
@@ -417,6 +420,9 @@ document.addEventListener('DOMContentLoaded', function () {
     
         Object.values(robots).forEach((robot, index) => {
             if (!robot.online) return;
+    
+            // Only display if robot is within bounds
+            if (!isWithinBounds(robot.x, robot.y)) return;
     
             const robotColor = getColorForRobotIndex(index);
             const drawX = robot.x * cellSize;            // X-axis from 0 to 9
@@ -432,6 +438,9 @@ document.addEventListener('DOMContentLoaded', function () {
     
         // Draw obstacles
         obstacles.forEach(ob => {
+            // Only display if obstacle is within bounds
+            if (!isWithinBounds(ob.x, ob.y)) return;
+    
             const drawX = ob.x * cellSize;              // X-axis from 0 to 9
             const drawY = (Math.abs(ob.y) * cellSize);   // Convert Y-axis (flip to canvas system)
     
