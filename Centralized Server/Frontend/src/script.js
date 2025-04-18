@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
           online: false,
           x: 0,
           y: 0,
-          direction: 'north',
+          direction: 'null',
           lastUpdate: null,
           element: null,
           currentTask: null
@@ -90,13 +90,9 @@ document.addEventListener('DOMContentLoaded', function() {
   function getDirectionArrow(dir) {
       const arrows = {
           north: '↑', 
-          northeast: '↗',
           east: '→',
-          southeast: '↘',
           south: '↓',
-          southwest: '↙',
           west: '←',
-          northwest: '↖'
       };
       return arrows[dir.toLowerCase()] || dir;
   }
@@ -152,6 +148,35 @@ document.addEventListener('DOMContentLoaded', function() {
           obstacleList.removeChild(obstacleList.lastChild);
       }
   }
+  function addAcknowledgment(ack) {
+    const ackList = document.getElementById('ack-list');
+    const ackElement = document.createElement('div');
+    ackElement.className = 'ack-item';
+    ackElement.innerHTML = `
+      <strong>${ack.sender}</strong>: Acknowledged message ID <code>${ack.messageId}</code>
+      <span class="ack-time">${new Date(ack.timestamp * 1000).toLocaleTimeString()}</span>
+    `;
+    ackList.insertBefore(ackElement, ackList.firstChild);
+    if (ackList.children.length > 20) {
+      ackList.removeChild(ackList.lastChild);
+    }
+  }
+  
+  function addError(error) {
+    const errorList = document.getElementById('error-list');
+    const errorElement = document.createElement('div');
+    errorElement.className = 'error-item';
+    errorElement.innerHTML = `
+      <strong>${error.sender}</strong>: ${error.message}
+      <span class="error-code">Code: ${error.code}</span>
+      <span class="error-time">${new Date(error.timestamp * 1000).toLocaleTimeString()}</span>
+    `;
+    errorList.insertBefore(errorElement, errorList.firstChild);
+    if (errorList.children.length > 20) {
+      errorList.removeChild(errorList.lastChild);
+    }
+  }
+  
 
   function updateConnectedRobotsCount() {
       const connected = Object.values(robots).filter(r => r.online).length;
@@ -279,6 +304,11 @@ document.addEventListener('DOMContentLoaded', function() {
                   if (!msg.data || !msg.data.received_message_id) {
                       throw new Error('Invalid acknowledgment structure');
                   }
+                  addAcknowledgment({
+                    sender: msg.sender,
+                    messageId: msg.data.received_message_id,
+                    timestamp: msg.timestamp
+                  });
                   addLog(`${msg.sender} acknowledged: ${msg.data.received_message_id}`);
                   break;
                   
@@ -286,6 +316,12 @@ document.addEventListener('DOMContentLoaded', function() {
                   if (!msg.data || !msg.data.error_code || !msg.data.error_message) {
                       throw new Error('Invalid error structure');
                   }
+                  addError({
+                    sender: msg.sender,
+                    message: msg.data.error_message,
+                    code: msg.data.error_code,
+                    timestamp: msg.timestamp
+                  });
                   addLog(`ERROR from ${msg.sender}: ${msg.data.error_message} (code ${msg.data.error_code})`);
                   break;
                   
@@ -344,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   data: {
                       x: Math.floor(Math.random() * 20),
                       y: Math.floor(Math.random() * 20),
-                      direction: ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest"][Math.floor(Math.random() * 8)]
+                      direction: ["north", "south", "east", "west"][Math.floor(Math.random() * 8)]
                   }
               };
               break;
@@ -380,4 +416,45 @@ document.addEventListener('DOMContentLoaded', function() {
           payloadString: JSON.stringify(msg)
       });
   };
+  function updateTime() {
+    document.getElementById('current-time').textContent = new Date().toLocaleString();
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+  document.getElementById('task-assignment-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+    
+      const robotId = document.getElementById('robot-select').value;
+      const task = document.getElementById('task-name').value.trim();
+      const targetX = parseInt(document.getElementById('target-x').value);
+      const targetY = parseInt(document.getElementById('target-y').value);
+      const timestamp = Math.floor(Date.now() / 1000);
+    
+      if (!task || isNaN(targetX) || isNaN(targetY)) {
+        alert("Please fill out all fields.");
+        return;
+      }
+    
+      const message = new Paho.Message(JSON.stringify({
+        sender: 'dashboard',
+        type: 'task_assignment',
+        version: '1.0',
+        timestamp: timestamp,
+        data: {
+          robot_id: robotId,
+          task: task,
+          target_x: targetX,
+          target_y: targetY
+        }
+      }));
+    
+      message.destinationName = 'server/tasks';
+      client.send(message);
+    
+      addLog(`Sent task: ${robotId} to ${task} at (${targetX}, ${targetY})`);
+    
+      this.reset();
+    });
 });
+
+      

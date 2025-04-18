@@ -136,3 +136,21 @@ body {
     color: #555;
     font-size: 1.1rem;
   }
+.task-container,
+.obstacle-container,
+.ack-container,
+.error-container {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column-reverse;
+  padding-right: 10px;
+}
+.test-buttons form, #emergency-stop {
+  margin-top: 10px;
+}
+
+canvas#map-canvas {
+  margin-top: 20px;
+}
+
