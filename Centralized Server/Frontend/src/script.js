@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
         mqttVersion: 4,
         onSuccess: () => {
             updateConnectionStatus(true);
-            addLog('Connected to MQTT broker'); 
+            addLog('Connected to MQTT broker');
 
             // Subscribe to topics
             client.subscribe('robots/position_updates');
