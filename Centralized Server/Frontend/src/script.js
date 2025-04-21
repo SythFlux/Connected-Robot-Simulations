@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function () {
     // Protocol version
     const PROTOCOL_VERSION = "1.3";
@@ -211,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function () {
             client.subscribe('server/tasks');
             client.subscribe('robots/acknowledgments');
             client.subscribe('robots/errors');
-
+            client.subscribe('server/broadcast');
             console.log('Subscribed to all topics');
         },
         onFailure: (err) => {
@@ -329,6 +328,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                     addLog(`ERROR from ${msg.sender}: ${msg.data.error_message} (code ${msg.data.error_code})`);
                     break;
+                    case 'stop_all':
+                        if (!msg.data) {
+                            throw new Error('Invalid stop structure');
+                        }
+                        addLog(`Stop from ${msg.sender} stopped all processes`);
+                        break;
                 default:
                     addLog(`Unknown message type from ${msg.sender}: ${msg.type}`);
             }
@@ -601,3 +606,24 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+    document.getElementById('stop-all-btn').addEventListener('click', () => {
+        const message = {
+            type: "stop_all",
+            version: PROTOCOL_VERSION,
+            timestamp: Math.floor(Date.now() / 1000),
+            sender: "dashboard",
+            data: {}
+        };
+    
+        const topic = "server/broadcast";
+        const payload = JSON.stringify(message);
+    
+        if (client && client.isConnected()) {
+            client.publish(topic, payload);
+            console.log(`Stop command sent to ${topic}:`, payload);
+        } else {
+            console.warn("MQTT client is not connected.");
+        }
+    });
+    
+});
