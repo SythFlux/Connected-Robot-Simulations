@@ -23,16 +23,6 @@ document.addEventListener('DOMContentLoaded', function () {
     messageLog.innerHTML = '<h3>Message Log</h3><div id="message-log-content"></div>';
     dashboard.appendChild(messageLog);
 
-    const taskContainer = document.createElement('div');
-    taskContainer.className = 'task-container';
-    taskContainer.innerHTML = '<h3>Task Assignments</h3><div id="task-list"></div>';
-    dashboard.appendChild(taskContainer);
-
-    const obstacleContainer = document.createElement('div');
-    obstacleContainer.className = 'obstacle-container';
-    obstacleContainer.innerHTML = '<h3>Detected Obstacles</h3><div id="obstacle-list"></div>';
-    dashboard.appendChild(obstacleContainer);
-
     // Connection status UI
     const mqttStatus = document.getElementById('mqtt-status');
     const mqttStatusIndicator = document.getElementById('mqtt-status-indicator');
@@ -339,7 +329,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                     addLog(`ERROR from ${msg.sender}: ${msg.data.error_message} (code ${msg.data.error_code})`);
                     break;
-
                 default:
                     addLog(`Unknown message type from ${msg.sender}: ${msg.type}`);
             }
@@ -612,22 +601,3 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
-
-    document.getElementById('emergency-stop').addEventListener('click', function () {
-        const stopMessage = {
-            sender: 'dashboard',
-            type: 'emergency_stop',
-            timestamp: Math.floor(Date.now() / 1000),
-            version: PROTOCOL_VERSION,
-            data: {
-                message: 'Emergency STOP issued'
-            }
-        };
-        const message = new Paho.Message(JSON.stringify(stopMessage));
-        message.destinationName = 'server/emergency_stop';
-        client.send(message);
-        addLog('EMERGENCY STOP issued to all robots!');
-    });
-
-});
-

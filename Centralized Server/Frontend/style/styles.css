@@ -135,46 +135,4 @@ body {
     margin: 20px 0 10px 0;
     color: #555;
     font-size: 1.1rem;
-  }
-.task-container,
-.obstacle-container,
-.ack-container,
-.error-container {
-  max-height: 300px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column-reverse;
-  padding-right: 10px;
-}
-.test-buttons form, #emergency-stop {
-  margin-top: 10px;
-}
-
-canvas#map-canvas {
-  margin-top: 20px;
-}
-#map-container {
-  position: relative;
-  width: max-content;           /* shrink‑wrap to canvas size */
-  margin: 20px auto;            /* center horizontally with some top/bottom space */
-  border: 6px solid #333;       /* thick wall border */
-  padding: 0;                   
-  background: #f8f9fa;          /* same as body bg so label blends in */
-}
-#map-container::before {
-  content: 'Wall';
-  position: absolute;
-  top: -14px;                   /* sits just above the border */
-  left: 50%;
-  transform: translateX(-50%);
-  background: #f8f9fa;          /* mask behind the text */
-  padding: 0 6px;               
-  font-size: 0.9rem;
-  color: #333;
-  line-height: 1;
-}
-#robot-canvas {
-  border: 1px solid #000;  /* Optional: add border for visual clarity */
-  max-width: 100%;          /* Ensure the canvas doesn't overflow its container */
-  max-height: 100%;         /* Ensure the canvas doesn't overflow its container */
 }
