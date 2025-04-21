@@ -1,0 +1,38 @@
+#VRML_SIM R2025a utf8
+# Describe the functionality of your PROTO here.
+# template language: javascript
+
+PROTO MyProto [
+  field SFString name "robot"
+  field SFColor color 1 0 0
+  field SFVec3f translation 0 0 0.05
+  field SFVec2f target 0 0 
+]
+{
+  Robot {
+    translation IS translation
+    name IS name
+    color IS color
+    target IS target
+    children [
+      Solid {
+        children [
+          DEF box Shape {
+            appearance PBRAppearance {
+              baseColor IS color
+              roughness 1
+              metalness 0
+            }
+            geometry Box {
+              size 0.1 0.1 0.1
+            }
+          }
+        ]
+        boundingObject USE box
+      }
+    ]
+    controller "my_controller2"
+    supervisor TRUE
+  }
+
+}
